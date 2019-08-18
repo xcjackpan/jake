@@ -9,6 +9,7 @@
 #include <cctype>
 #include <algorithm>
 #include <iterator>
+#include <queue>
 
 class Rake {
   std::string stopwordsFileName;
@@ -17,10 +18,19 @@ class Rake {
   std::vector<std::string> document;
 
   static char toLower(char c) {
-      if (c <= 'Z' && c >= 'A')
+      if (c <= 'Z' && c >= 'A') {
           return c - ('Z' - 'z');
+      }
       return c;
   }
+
+  // Comparator for scoring phrases
+  class PhraseCompare {
+    public:
+      bool operator() (std::pair<std::string, int> a, std::pair<std::string, int> b) {
+        return a.second > b.second;
+      }
+  };
 
   // C++ Rake implemented following along:
   // https://www.researchgate.net/publication/227988510_Automatic_Keyword_Extraction_from_Individual_Documents
@@ -89,7 +99,7 @@ class Rake {
         }
       }
 
-      // Compute word scores
+      // Compute word scores from co-occurence graph
       std::vector<double> word_scores (candidate_count, 0); // word_score[i] is the score for word with index i
       for (auto it = candidate_indices.begin(); it != candidate_indices.end(); it++) {
         // freq(w) is matrix[w_index][w_index]
@@ -107,6 +117,25 @@ class Rake {
         word_scores[index] = deg/freq; // Frequency is never 0
       }
 
+      // Assign each phrase a score, based on the sum of its member words' scores
+      std::vector<std::pair<std::string, int>> scored_phrases;
+      for (auto it = phrases.begin(); it != phrases.end(); it++) {
+        std::istringstream iss(*it);
+        std::string word = "";
+        int phrase_score = 0;
+        while (iss >> word) {
+          std::transform(word.begin(), word.end(), word.begin(), this->toLower);
+          int index = candidate_indices.find(word)->second;
+          phrase_score += word_scores[index];
+        }
+        scored_phrases.emplace_back(std::make_pair(*it, phrase_score));
+      }
+
+      std::sort(scored_phrases.begin(), scored_phrases.end(), PhraseCompare());
+      for (int a = 0; a < 10; a++) {
+        std::cout << scored_phrases[a].first << std::endl;
+      }
+     
       return {"a"};
     }
 
