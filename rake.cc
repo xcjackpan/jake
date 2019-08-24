@@ -11,11 +11,16 @@
 #include <iterator>
 #include <queue>
 
+
+// Rake implemented as a C++ class following along:
+// https://www.researchgate.net/publication/227988510_Automatic_Keyword_Extraction_from_Individual_Documents
+
 class Rake {
   std::string stopwordsFileName;
   std::unordered_set<std::string> stopwords;
   std::string documentName;
   std::vector<std::string> document;
+  std::vector<std::pair<std::string, int>> scored_phrases;
 
   static char toLower(char c) {
       if (c <= 'Z' && c >= 'A') {
@@ -32,11 +37,21 @@ class Rake {
       }
   };
 
-  // C++ Rake implemented following along:
-  // https://www.researchgate.net/publication/227988510_Automatic_Keyword_Extraction_from_Individual_Documents
-
   public:
-    std::vector<std::string> rake() {
+    std::vector<std::string> getScoredPhrases(int num) {
+      std::vector<std::string> result;
+      if (num > this->scored_phrases.size()) {
+        return {};
+      } else {
+        for (int i = 0; i < num; i++) {
+          result.emplace_back(this->scored_phrases[i].first);
+        }
+      }
+      return result;
+    }
+
+    // Runs the RAKE algorithm
+    void rake() {
 
       // Isolate candidate phrases
       std::string phrase = "";
@@ -118,7 +133,7 @@ class Rake {
       }
 
       // Assign each phrase a score, based on the sum of its member words' scores
-      std::vector<std::pair<std::string, int>> scored_phrases;
+      this->scored_phrases = {};
       for (auto it = phrases.begin(); it != phrases.end(); it++) {
         std::istringstream iss(*it);
         std::string word = "";
@@ -128,15 +143,11 @@ class Rake {
           int index = candidate_indices.find(word)->second;
           phrase_score += word_scores[index];
         }
-        scored_phrases.emplace_back(std::make_pair(*it, phrase_score));
+        this->scored_phrases.emplace_back(std::make_pair(*it, phrase_score));
       }
 
-      std::sort(scored_phrases.begin(), scored_phrases.end(), PhraseCompare());
-      for (int a = 0; a < 10; a++) {
-        std::cout << scored_phrases[a].first << std::endl;
-      }
-     
-      return {"a"};
+      std::sort(this->scored_phrases.begin(), this->scored_phrases.end(), PhraseCompare());
+      return;
     }
 
     Rake(std::string stopwordsFileName, std::string documentName) : stopwordsFileName{stopwordsFileName},
@@ -173,5 +184,7 @@ class Rake {
 
 int main() {
   Rake r = Rake("stopwords.txt", "document.txt");
-  std::cout << r.rake()[0] << std::endl;
+  r.rake();
+
+  std::cout << r.getScoredPhrases(10)[0] << std::endl;
 }
