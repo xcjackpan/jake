@@ -12,19 +12,19 @@
 #include <queue>
 
 
-// Rake implemented as a C++ class following along:
+// Rake implemented with slight modifications following along:
 // https://www.researchgate.net/publication/227988510_Automatic_Keyword_Extraction_from_Individual_Documents
 
 // RAKE, short for Rapid Automatic Keyword Extraction, is a domain independent keyword extraction 
 // algorithm which tries to determine key phrases in a body of text by analyzing the frequency of word appearance
 // and its co-occurance with other words in the text.
 
-class Rake {
+class Jake {
   std::string stopwordsFileName;
   std::unordered_set<std::string> stopwords;
   std::string documentName;
   std::vector<std::string> document;
-  std::vector<std::pair<std::string, int>> scored_phrases;
+  std::vector<std::pair<std::string, double>> scored_phrases;
 
   static char toLower(char c) {
       if (c <= 'Z' && c >= 'A') {
@@ -54,8 +54,7 @@ class Rake {
       return result;
     }
 
-    void rake() {
-
+    void process_text() {
       // Isolate candidate phrases
       std::string phrase = "";
       std::vector<std::string> phrases;
@@ -117,6 +116,7 @@ class Rake {
         }
       }
 
+      double mean = 0;
       // Compute word scores from co-occurence graph
       std::vector<double> word_scores (candidate_count, 0); // word_score[i] is the score for word with index i
       for (auto it = candidate_indices.begin(); it != candidate_indices.end(); it++) {
@@ -135,16 +135,26 @@ class Rake {
         word_scores[index] = deg/freq; // Frequency is never 0
       }
 
+      std::vector<double> sorted_word_scores = word_scores;
+      std::nth_element(sorted_word_scores.begin(),
+                       sorted_word_scores.begin() + (candidate_count/2),
+                       sorted_word_scores.end());
+      int median = sorted_word_scores[candidate_count/2];
+
       // Assign each phrase a score, based on the sum of its member words' scores
+      // Normal RAKE inherently favors longer phrases ... counterbalance by subtracting median
+      // Only punishes super long phrases with lots of low-scoring words
+      // eg. Really long phrase with low scoring words
       this->scored_phrases = {};
       for (auto it = phrases.begin(); it != phrases.end(); it++) {
         std::istringstream iss(*it);
         std::string word = "";
-        int phrase_score = 0;
+        double phrase_score = 0;
         while (iss >> word) {
           std::transform(word.begin(), word.end(), word.begin(), this->toLower);
           int index = candidate_indices.find(word)->second;
           phrase_score += word_scores[index];
+          phrase_score -= median;
         }
         this->scored_phrases.emplace_back(std::make_pair(*it, phrase_score));
       }
@@ -153,7 +163,7 @@ class Rake {
       return;
     }
 
-    Rake(std::string stopwordsFileName, std::string documentName) : stopwordsFileName{stopwordsFileName},
+    Jake(std::string stopwordsFileName, std::string documentName) : stopwordsFileName{stopwordsFileName},
                                                                     documentName{documentName} {
       // Get stopwords
       std::string line;
@@ -185,9 +195,13 @@ class Rake {
     }
 };
 
-int main() {
-  Rake r = Rake("stopwords.txt", "document.txt");
-  r.rake();
 
-  std::cout << r.getScoredPhrases(10)[0] << std::endl;
+int main() {
+  Jake j = Jake("stopwords.txt", "document.txt");
+  j.process_text();
+
+  auto res = j.getScoredPhrases(10);
+  for (int i = 0; i < 10; i++) {
+    std::cout << res[i] << std::endl;
+  }
 }
