@@ -12,16 +12,16 @@
 #include <queue>
 
 class Jake {
-  std::string stopwordsFileName;
+  std::string stopwords_file_name;
   std::unordered_set<std::string> stopwords;
-  std::string documentName;
+  std::string document_name;
   std::vector<std::string> document;
-  std::vector<std::pair<std::string, double>> scoredPhrases;
-  static char toLower(char c);
+  std::vector<std::pair<std::string, double>> scored_phrases;
+  static char to_lower(char c);
   class PhraseCompare;
 
   public:
-    Jake(std::string stopwordsFileName, std::string documentName);
-    std::vector<std::string> getScoredPhrases(int num);
-    void processText();
+    Jake(std::string stopwords_file_name, std::string document_name);
+    std::vector<std::string> get_scored_phrases(unsigned num);
+    void process_text();
 };
