@@ -1,4 +1,4 @@
-# rake
+# jake
 
 JAKE = Jack's Automatic Keyword Extraction. Modified version of RAKE.
 
